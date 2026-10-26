@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pooled Lending Hub</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- React & React DOM CDNs -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  
+  <!-- Babel Standalone (Compiles JSX directly in browser) -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body class="bg-slate-100 text-slate-800 font-sans min-h-screen">
+
+  <!-- React Mount Root Container -->
+  <div id="root"></div>
+
+  <!-- Application Logic Component -->
+  <script type="text/babel">
+    const { useState, useEffect, useMemo } = React;
+
+    // --- TRANSLATION DICTIONARY (ENGLISH & BENGALI) ---
+    const TRANSLATIONS = {
+      en: {
+        appName: "Pooled Lending Hub",
+        tagline: "Weekly Investment & Loan Management System",
+        login: "Log In",
+        logout: "Log Out",
+        username: "Username",
+        password: "Password",
+        role: "Role",
+        admin: "Admin",
+        investor: "Investor",
+        borrower: "Borrower",
+        totalInvested: "Total Invested",
+        totalLoaned: "Total Loaned Out",
+        totalRepaid: "Total Repaid",
+        pendingAmount: "Pending Loan Balance",
+        totalProfit: "Total Interest Profit",
+        tabInvestors: "Investors",
+        tabInvestments: "Weekly Investments",
+        tabBorrowers: "Borrowers",
+        tabLoans: "Loans Issued",
+        tabRepayments: "Repayments",
+        tabSettlement: "Year-End Settlement",
+        addNew: "Add New",
+        importCsv: "Import CSV",
+        exportCsv: "Export CSV",
+        search: "Search records...",
+        action: "Actions",
+        delete: "Delete",
+        save: "Save",
+        cancel: "Cancel",
+        investorShare: "Your Estimated Year-End Share",
+        myLoans: "My Loan Overview",
+        myRepayments: "My Repayment History",
+        editProfile: "Edit My Contact Details",
+        rupees: "₹",
+        demoLogins: "Quick Demo Logins:",
+        seedInfo: "Includes sample data for instant testing."
+      },
+      bn: {
+        appName: "পুল্ড লেন্ডিং হাব",
+        tagline: "সাপ্তাহিক বিনিয়োগ এবং ঋণ ব্যবস্থাপনা পদ্ধতি",
+        login: "লগ ইন করুন",
+        logout: "লগ আউট",
+        username: "ব্যবহারকারীর নাম (Username)",
+        password: "পাসওয়ার্ড (Password)",
+        role: "ভূমিকা (Role)",
+        admin: "এডমিন",
+        investor: "বিনিয়োগকারী",
+        borrower: "ঋণগ্রহীতা",
+        totalInvested: "মোট বিনিয়োগ",
+        totalLoaned: "মোট প্রদত্ত ঋণ",
+        totalRepaid: "মোট পরিশোধিত ঋণ",
+        pendingAmount: "বকেয়া ঋণের পরিমাণ",
+        totalProfit: "মোট সুদের মুনাফা",
+        tabInvestors: "বিনিয়োগকারী তালিকা",
+        tabInvestments: "সাপ্তাহিক বিনিয়োগ",
+        tabBorrowers: "ঋণগ্রহীতাগণ",
+        tabLoans: "প্রদত্ত ঋণসমূহ",
+        tabRepayments: "কিশতি / পরিশোধ বিবরণী",
+        tabSettlement: "বছরের শেষের হিসেব (Settlement)",
+        addNew: "নতুন যোগ করুন",
+        importCsv: "CSV ইমপোর্ট করুন",
+        exportCsv: "CSV এক্সপোর্ট করুন",
+        search: "খুঁজুন...",
+        action: "পদক্ষেপ",
+        delete: "মুছে ফেলুন",
+        save: "সংরক্ষণ করুন",
+        cancel: "বাতিল করুন",
+        investorShare: "আপনার আনুমানিক বছরের শেষের অংশ",
+        myLoans: "আমার ঋণের বিবরণী",
+        myRepayments: "আমার পরিশোধের ইতিহাস",
+        editProfile: "যোগাযোগের তথ্য পরিবর্তন করুন",
+        rupees: "₹",
+        demoLogins: "দ্রুত ডেমো লগইন:",
+        seedInfo: "পরীক্ষার জন্য নমুনা তথ্য অন্তর্ভুক্ত করা হয়েছে।"
+      }
+    };
+
+    // --- SEED SAMPLE DATA ---
+    const INITIAL_USERS = [
+      { id: 'u1', username: 'admin1', name: 'Rajesh Sharma (Admin)', role: 'admin', phone: '9876543210', address: 'Delhi, India' },
+      { id: 'u2', username: 'admin2', name: 'Anita Verma (Admin)', role: 'admin', phone: '9876543211', address: 'Mumbai, India' },
+      { id: 'u3', username: 'admin3', name: 'Suresh Gupta (Admin)', role: 'admin', phone: '9876543212', address: 'Jaipur, India' },
+      { id: 'u4', username: 'investor_ram', name: 'Ramesh Kumar', role: 'investor', phone: '9123456780', address: 'Sector 14, Gurugram', startDate: '01/01/2026' },
+      { id: 'u5', username: 'investor_sunita', name: 'Sunita Devi', role: 'investor', phone: '9123456781', address: 'Civil Lines, Kanpur', startDate: '15/01/2026' },
+      { id: 'u6', username: 'borrower_vikram', name: 'Vikram Singh', role: 'borrower', phone: '9988776655', address: 'Gwalior, MP', idProof: 'ID-88392019' },
+      { id: 'u7', username: 'borrower_meena', name: 'Meena Kumari', role: 'borrower', phone: '9988776644', address: 'Lucknow, UP', idProof: 'ID-55443322' }
+    ];
+
+    const INITIAL_INVESTMENTS = [
+      { id: 'inv1', investorId: 'u4', investorName: 'Ramesh Kumar', date: '05/01/2026', amount: 5000 },
+      { id: 'inv2', investorId: 'u4', investorName: 'Ramesh Kumar', date: '12/01/2026', amount: 5000 },
+      { id: 'inv3', investorId: 'u5', investorName: 'Sunita Devi', date: '15/01/2026', amount: 10000 },
+      { id: 'inv4', investorId: 'u5', investorName: 'Sunita Devi', date: '22/01/2026', amount: 10000 },
+    ];
+
+    const INITIAL_LOANS = [
+      { id: 'loan1', borrowerId: 'u6', borrowerName: 'Vikram Singh', amountApproved: 15000, interestRate: 12, startDate: '10/01/2026', endDate: '10/07/2026', status: 'active' },
+      { id: 'loan2', borrowerId: 'u7', borrowerName: 'Meena Kumari', amountApproved: 10000, interestRate: 10, startDate: '20/01/2026', endDate: '20/07/2026', status: 'active' },
+    ];
+
+    const INITIAL_REPAYMENTS = [
+      { id: 'rep1', loanId: 'loan1', borrowerName: 'Vikram Singh', date: '15/02/2026', amountPaid: 3000 },
+      { id: 'rep2', loanId: 'loan1', borrowerName: 'Vikram Singh', date: '15/03/2026', amountPaid: 3000 },
+      { id: 'rep3', loanId: 'loan2', borrowerName: 'Meena Kumari', date: '25/02/2026', amountPaid: 2000 },
+    ];
+
+    function App() {
+      const [lang, setLang] = useState('en');
+      const [currentUser, setCurrentUser] = useState(null);
+      const [users, setUsers] = useState(INITIAL_USERS);
+      const [investments, setInvestments] = useState(INITIAL_INVESTMENTS);
+      const [loans, setLoans] = useState(INITIAL_LOANS);
+      const [repayments, setRepayments] = useState(INITIAL_REPAYMENTS);
+      const [activeTab, setActiveTab] = useState('investors');
+      const [searchQuery, setSearchQuery] = useState('');
+      const [loginForm, setLoginForm] = useState({ username: '', password: '' });
+      const [loginError, setLoginError] = useState('');
+      const [modalType, setModalType] = useState(null);
+      const [formData, setFormData] = useState({});
+
+      const t = TRANSLATIONS[lang];
+
+      const totals = useMemo(() => {
+        const totalInvested = investments.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+        const totalLoaned = loans.reduce((sum, item) => sum + Number(item.amountApproved || 0), 0);
+        const totalRepaid = repayments.reduce((sum, item) => sum + Number(item.amountPaid || 0), 0);
+        const pendingAmount = Math.max(0, totalLoaned - totalRepaid);
+
+        let estimatedProfit = 0;
+        loans.forEach(loan => {
+          const loanRepaid = repayments.filter(r => r.loanId === loan.id).reduce((s, r) => s + Number(r.amountPaid), 0);
+          estimatedProfit += (loanRepaid * (loan.interestRate / 100));
+        });
+
+        return { totalInvested, totalLoaned, totalRepaid, pendingAmount, totalProfit: Math.round(estimatedProfit) };
+      }, [investments, loans, repayments]);
+
+      const handleLogin = (e) => {
+        e.preventDefault();
+        setLoginError('');
+        const user = users.find(u => u.username.toLowerCase() === loginForm.username.trim().toLowerCase());
+        if (user) {
+          setCurrentUser(user);
+          setLoginForm({ username: '', password: '' });
+          if (user.role === 'borrower') setActiveTab('my_loans');
+          else setActiveTab('investors');
+        } else {
+          setLoginError('Invalid username or password. Try a demo account below!');
+        }
+      };
+
+      const handleQuickLogin = (username) => {
+        const user = users.find(u => u.username === username);
+        if (user) {
+          setCurrentUser(user);
+          if (user.role === 'borrower') setActiveTab('my_loans');
+          else setActiveTab('investors');
+        }
+      };
+
+      const handleLogout = () => {
+        setCurrentUser(null);
+        setSearchQuery('');
+      };
+
+      const exportToCSV = (data, filename) => {
+        if (!data.length) return;
+        const headers = Object.keys(data[0]).join(',');
+        const rows = data.map(obj => Object.values(obj).map(v => `"${v}"`).join(','));
+        const csvContent = "data:text/csv;charset=utf-8," + [headers, ...rows].join("\n");
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `${filename}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      };
+
+      if (!currentUser) {
+        return (
+          <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col justify-center items-center p-4">
+            <div className="absolute top-4 right-4 flex items-center space-x-2 bg-slate-800 p-2 rounded-lg border border-slate-700">
+              <button 
+                onClick={() => setLang(lang === 'en' ? 'bn' : 'en')}
+                className="text-sm font-medium hover:text-emerald-400 transition"
+              >
+                {lang === 'en' ? 'বাংলায় দেখুন (Bengali)' : 'Switch to English'}
+              </button>
+            </div>
+
+            <div className="w-full max-w-md bg-slate-800 rounded-2xl p-6 md:p-8 shadow-2xl border border-slate-700">
+              <h1 className="text-2xl md:text-3xl font-bold text-center text-emerald-400 mb-1">{t.appName}</h1>
+              <p className="text-xs md:text-sm text-slate-400 text-center mb-6">{t.tagline}</p>
+
+              <form onSubmit={handleLogin} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold uppercase text-slate-400 mb-1">{t.username}</label>
+                  <input
+                    type="text"
+                    required
+                    value={loginForm.username}
+                    onChange={(e) => setLoginForm({ ...loginForm, username: e.target.value })}
+                    placeholder="Enter username"
+                    className="w-full px-4 py-3 bg-slate-900 rounded-xl border border-slate-700 text-white focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold uppercase text-slate-400 mb-1">{t.password}</label>
+                  <input
+                    type="password"
+                    required
+                    value={loginForm.password}
+                    onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
+                    placeholder="••••••••"
+                    className="w-full px-4 py-3 bg-slate-900 rounded-xl border border-slate-700 text-white focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+
+                {loginError && (
+                  <div className="bg-rose-500/10 border border-rose-500/30 text-rose-400 p-3 rounded-lg text-sm">
+                    {loginError}
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3.5 rounded-xl shadow-lg transition duration-200"
+                >
+                  {t.login}
+                </button>
+              </form>
+
+              <div className="mt-8 pt-6 border-t border-slate-700">
+                <p className="text-xs text-slate-400 font-semibold mb-3">{t.demoLogins}</p>
+                <div className="grid grid-cols-3 gap-2">
+                  <button onClick={() => handleQuickLogin('admin1')} className="bg-slate-700 hover:bg-slate-600 text-xs py-2 px-2 rounded-lg font-medium text-slate-200 text-center">
+                    1. Admin<br/><span className="text-[10px] text-emerald-400">(Full Access)</span>
+                  </button>
+                  <button onClick={() => handleQuickLogin('investor_ram')} className="bg-slate-700 hover:bg-slate-600 text-xs py-2 px-2 rounded-lg font-medium text-slate-200 text-center">
+                    2. Investor<br/><span className="text-[10px] text-blue-400">(Read All)</span>
+                  </button>
+                  <button onClick={() => handleQuickLogin('borrower_vikram')} className="bg-slate-700 hover:bg-slate-600 text-xs py-2 px-2 rounded-lg font-medium text-slate-200 text-center">
+                    3. Borrower<br/><span className="text-[10px] text-amber-400">(Own Only)</span>
+                  </button>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setModalType('sql_guide')}
+                className="w-full mt-4 text-xs text-slate-400 hover:text-emerald-400 underline text-center block"
+              >
+                📋 View Supabase SQL Schema & RLS Security Script
+              </button>
+            </div>
+          </div>
+        );
+      }
+
+      const filteredInvestors = users.filter(u => u.role === 'investor' && u.name.toLowerCase().includes(searchQuery.toLowerCase()));
+      const filteredBorrowers = users.filter(u => u.role === 'borrower' && u.name.toLowerCase().includes(searchQuery.toLowerCase()));
+      const filteredInvestments = investments.filter(i => i.investorName.toLowerCase().includes(searchQuery.toLowerCase()));
+      const filteredLoans = loans.filter(l => l.borrowerName.toLowerCase().includes(searchQuery.toLowerCase()));
+      const filteredRepayments = repayments.filter(r => r.borrowerName.toLowerCase().includes(searchQuery.toLowerCase()));
+
+      const myLoans = loans.filter(l => l.borrowerId === currentUser.id);
+      const myLoanIds = myLoans.map(l => l.id);
+      const myRepayments = repayments.filter(r => myLoanIds.includes(r.loanId));
+      const myTotalBorrowed = myLoans.reduce((sum, l) => sum + Number(l.amountApproved), 0);
+      const myTotalRepaid = myRepayments.reduce((sum, r) => sum + Number(r.amountPaid), 0);
+      const myPendingBalance = Math.max(0, myTotalBorrowed - myTotalRepaid);
+
+      const investorTotalContrib = investments.filter(i => i.investorId === currentUser.id).reduce((s, i) => s + Number(i.amount), 0);
+      const myEstimatedShare = totals.totalInvested > 0 
+        ? Math.round((investorTotalContrib / totals.totalInvested) * (totals.totalInvested + totals.totalProfit)) 
+        : 0;
+
+      return (
+        <div className="min-h-screen bg-slate-100 text-slate-800 flex flex-col">
+          <header className="bg-slate-900 text-white shadow-md sticky top-0 z-30">
+            <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+              <div>
+                <h1 className="text-lg md:text-xl font-bold text-white">{t.appName}</h1>
+                <p className="text-xs text-slate-400">
+                  User: <span className="text-emerald-400 font-semibold">{currentUser.name}</span> ({currentUser.role.toUpperCase()})
+                </p>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <button onClick={() => setLang(lang === 'en' ? 'bn' : 'en')} className="bg-slate-800 text-xs px-3 py-2 rounded-lg border border-slate-700">
+                  {lang === 'en' ? 'বাংলা' : 'English'}
+                </button>
+                <button onClick={handleLogout} className="bg-rose-600 hover:bg-rose-500 text-white text-xs px-3 py-2 rounded-lg font-medium">
+                  {t.logout}
+                </button>
+              </div>
+            </div>
+          </header>
+
+          <main className="flex-1 max-w-7xl w-full mx-auto p-4 space-y-6">
+            {currentUser.role !== 'borrower' && (
+              <section className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                <div className="bg-white p-4 rounded-xl border shadow-sm">
+                  <span className="text-xs text-slate-500 font-semibold uppercase">{t.totalInvested}</span>
+                  <div className="text-lg md:text-2xl font-bold text-slate-900 mt-1">{t.rupees}{totals.totalInvested.toLocaleString()}</div>
+                </div>
+                <div className="bg-white p-4 rounded-xl border shadow-sm">
+                  <span className="text-xs text-slate-500 font-semibold uppercase">{t.totalLoaned}</span>
+                  <div className="text-lg md:text-2xl font-bold text-blue-600 mt-1">{t.rupees}{totals.totalLoaned.toLocaleString()}</div>
+                </div>
+                <div className="bg-white p-4 rounded-xl border shadow-sm">
+                  <span className="text-xs text-slate-500 font-semibold uppercase">{t.totalRepaid}</span>
+                  <div className="text-lg md:text-2xl font-bold text-emerald-600 mt-1">{t.rupees}{totals.totalRepaid.toLocaleString()}</div>
+                </div>
+                <div className="bg-white p-4 rounded-xl border shadow-sm">
+                  <span className="text-xs text-slate-500 font-semibold uppercase">{t.pendingAmount}</span>
+                  <div className="text-lg md:text-2xl font-bold text-amber-600 mt-1">{t.rupees}{totals.pendingAmount.toLocaleString()}</div>
+                </div>
+                <div className="bg-white p-4 rounded-xl border shadow-sm col-span-2 md:col-span-1">
+                  <span className="text-xs text-slate-500 font-semibold uppercase">{t.totalProfit}</span>
+                  <div className="text-lg md:text-2xl font-bold text-indigo-600 mt-1">{t.rupees}{totals.totalProfit.toLocaleString()}</div>
+                </div>
+              </section>
+            )}
+
+            {currentUser.role === 'investor' && (
+              <section className="bg-emerald-900 text-emerald-50 p-5 rounded-2xl shadow border border-emerald-800 flex flex-col md:flex-row items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-bold">{t.investorShare}</h2>
+                  <p className="text-xs text-emerald-200">Based on your contributions relative to total pool size.</p>
+                </div>
+                <div className="bg-emerald-800 px-6 py-3 rounded-xl text-center mt-3 md:mt-0">
+                  <div className="text-2xl font-black text-emerald-300">{t.rupees}{myEstimatedShare.toLocaleString()}</div>
+                  <div className="text-[11px] text-emerald-200">Your Principal ({t.rupees}{investorTotalContrib}) + Profit Share</div>
+                </div>
+              </section>
+            )}
+
+            {currentUser.role === 'borrower' && (
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-6">
+                <div className="flex justify-between items-center border-b pb-4">
+                  <div>
+                    <h2 className="text-xl font-bold text-slate-900">{t.myLoans}</h2>
+                    <p className="text-xs text-slate-500">Welcome, {currentUser.name}</p>
+                  </div>
+                  <button onClick={() => setModalType('edit_profile')} className="bg-slate-900 text-white text-xs px-4 py-2 rounded-xl">
+                    {t.editProfile}
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="bg-slate-50 p-4 rounded-xl border"><span className="text-xs text-slate-500">Total Approved</span><div className="text-xl font-bold">{t.rupees}{myTotalBorrowed.toLocaleString()}</div></div>
+                  <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-200"><span className="text-xs text-emerald-700">Total Repaid</span><div className="text-xl font-bold text-emerald-700">{t.rupees}{myTotalRepaid.toLocaleString()}</div></div>
+                  <div className="bg-amber-50 p-4 rounded-xl border border-amber-200"><span className="text-xs text-amber-700">Remaining Balance</span><div className="text-xl font-bold text-amber-700">{t.rupees}{myPendingBalance.toLocaleString()}</div></div>
+                </div>
+
+                <h3 className="text-sm font-bold text-slate-700">Active Loans</h3>
+                <div className="overflow-x-auto border rounded-xl">
+                  <table className="w-full text-left text-xs md:text-sm">
+                    <thead className="bg-slate-50">
+                      <tr><th className="p-3">Loan ID</th><th className="p-3">Amount</th><th className="p-3">Interest</th><th className="p-3">Start Date</th><th className="p-3">End Date</th></tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {myLoans.map(loan => (
+                        <tr key={loan.id}><td className="p-3 font-semibold">{loan.id}</td><td className="p-3 font-bold">{t.rupees}{loan.amountApproved}</td><td className="p-3">{loan.interestRate}%</td><td className="p-3">{loan.startDate}</td><td className="p-3">{loan.endDate}</td></tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {currentUser.role !== 'borrower' && (
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div className="flex border-b bg-slate-50 overflow-x-auto">
+                  {['investors', 'investments', 'borrowers', 'loans', 'repayments', 'settlement'].map(tab => (
+                    <button
+                      key={tab}
+                      onClick={() => setActiveTab(tab)}
+                      className={`px-4 py-3.5 text-xs md:text-sm font-semibold whitespace-nowrap border-b-2 ${activeTab === tab ? 'border-emerald-600 text-emerald-700 bg-white' : 'border-transparent text-slate-500'}`}
+                    >
+                      {t['tab' + tab.charAt(0).toUpperCase() + tab.slice(1)]}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="p-4 border-b flex flex-col md:flex-row justify-between gap-3">
+                  <input
+                    type="text"
+                    placeholder={t.search}
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="p-2 text-xs md:text-sm bg-slate-50 border rounded-xl w-full md:w-64"
+                  />
+                  {currentUser.role === 'admin' && activeTab !== 'settlement' && (
+                    <button onClick={() => setModalType(`add_${activeTab.slice(0, -1)}`)} className="bg-emerald-600 text-white text-xs px-4 py-2 rounded-xl font-semibold">
+                      + {t.addNew}
+                    </button>
+                  )}
+                </div>
+
+                <div className="p-4 overflow-x-auto">
+                  {activeTab === 'investors' && (
+                    <table className="w-full text-left text-xs md:text-sm">
+                      <thead className="bg-slate-50"><tr><th className="p-3">Name</th><th className="p-3">Username</th><th className="p-3">Phone</th><th className="p-3">Address</th></tr></thead>
+                      <tbody className="divide-y">
+                        {filteredInvestors.map(inv => (
+                          <tr key={inv.id}><td className="p-3 font-bold">{inv.name}</td><td className="p-3 text-slate-500">{inv.username}</td><td className="p-3">{inv.phone}</td><td className="p-3">{inv.address}</td></tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+
+                  {activeTab === 'borrowers' && (
+                    <table className="w-full text-left text-xs md:text-sm">
+                      <thead className="bg-slate-50"><tr><th className="p-3">Name</th><th className="p-3">Phone</th><th className="p-3">ID Proof</th></tr></thead>
+                      <tbody className="divide-y">
+                        {filteredBorrowers.map(b => (
+                          <tr key={b.id}><td className="p-3 font-bold">{b.name}</td><td className="p-3">{b.phone}</td><td className="p-3 font-mono">{b.idProof}</td></tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+
+                  {activeTab === 'settlement' && (
+                    <table className="w-full text-left text-xs md:text-sm">
+                      <thead className="bg-slate-50">
+                        <tr><th className="p-3">Investor</th><th className="p-3">Total Investment</th><th className="p-3">Ownership %</th><th className="p-3 font-bold">Payout Share</th></tr>
+                      </thead>
+                      <tbody className="divide-y">
+                        {users.filter(u => u.role === 'investor').map(inv => {
+                          const invTotal = investments.filter(i => i.investorId === inv.id).reduce((s, i) => s + Number(i.amount), 0);
+                          const shareRatio = totals.totalInvested > 0 ? (invTotal / totals.totalInvested) : 0;
+                          const finalPayout = Math.round(shareRatio * (totals.totalInvested + totals.totalProfit));
+                          return (
+                            <tr key={inv.id}>
+                              <td className="p-3 font-bold">{inv.name}</td>
+                              <td className="p-3">{t.rupees}{invTotal}</td>
+                              <td className="p-3 font-mono">{(shareRatio * 100).toFixed(2)}%</td>
+                              <td className="p-3 font-bold text-emerald-600">{t.rupees}{finalPayout}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+              </div>
+            )}
+          </main>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
